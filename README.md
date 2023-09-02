@@ -26,7 +26,7 @@ python main_seqclassification_cv.py
 
 ## Citation
 
-If you use the code or results in your research, please consider citing our works(s) at:
+If you use the code or results in your research, please consider citing our work at:
 
 ```
 @article{yu2023sleepgpt,
