@@ -2,7 +2,7 @@
 
 ## Overview
 ![SleepGPT](https://github.com/yuty2009/sleepgpt/blob/main/figures/sleepgpt.png)
-The architecture of the proposed SleepGPT model comprises a series of $n$ transformer decoder blocks. Overlapping blocks consisting of $K+1$ stages are extracted from an overnight sleep stage sequence with a stride of 1. Here, the initial $K$ sleep stages form the input, while the terminal stage within each block serves as the respective target.
+The architecture of the proposed SleepGPT model comprises a series of $L$ transformer decoder blocks. Overlapping blocks consisting of $K$ stages are extracted from an overnight sleep stage sequence with a stride of 1. Here, the $(i-1)$th input block of $K$ sleep stages are fed into the model for predicting the $i$th target block.
 
 ![HTN](https://github.com/yuty2009/sleepgpt/blob/main/figures/sleepgpt_htn.png)
 The hierarchical transformer network (HTN) for stage sequence-based sleep disorder diagnosis. The HTN model comprises a local feature extractor, i.e., the SleepGPT model, a transformer encoder responsible for global feature extraction, and a classification head dedicated to diagnosis. The configuration of the global transformer encoder is depicted to the right. Positioned at the bottom is an example of a whole-night sleep stage sequence, partitioned into non-overlapping segments that are subsequently input into the HTN model.
@@ -31,7 +31,7 @@ If you use the code or results in your research, please consider citing our work
 ```
 @article{yu2023sleepgpt,
   title={SleepGPT: A Sleep Language Model for Sleep Staging and Sleep Disorder Diagnosis},
-  author={Yu, Tianyou and Wang, Fei and Li, Man and Yu, Zhuliang and Li, Yuanqing and Gu, Zhenghui and Xiao, Jun},
+  author={Yu, Tianyou and Wang, Fei and Li, Man and Yu, Jingang and Yu, Zhuliang and Li, Yuanqing and Gu, Zhenghui and Xiao, Jun},
   journal={},
   volume={},
   pages={},
