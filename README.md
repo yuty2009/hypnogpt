@@ -1,6 +1,9 @@
 # HypnoGPT: A Hypnogram Language Model for Sleep Staging Enhancement and Sleep Disorder Diagnosis
 
 ## Overview
+![Framework](https://github.com/yuty2009/hypnogpt/blob/main/figures/framework.png)
+**Overview of the proposed HypnoGPT model and applications to sleep staging enhancement and sleep disorder diagnosis**. (\textbf{a}) The HypnoGPT model is pretrained on a large sleep stage annotation dataset and is used to correct the sleep stage predictions of existing sleep staging models. Moreover, a hierarchical transformer network (HTN) is employed for sleep disorder diagnosis, with HypnoGPT acting as a local feature extractor. (\textbf{b}) Datasets for evaluating the proposed artificial intelligence (AI) systems. For sleep staging, cross-validation of the AI systems is performed on the SleepEDF and MASS datasets. The models trained from the MASS datasets are then prospectively validated on the Physio2018 dataset for generalizability assessment. For sleep disorder diagnosis, cross-validation of the AI systems is performed on the CAP and MNC datasets. The models trained from the CAP dataset are then prospectively validated on the ISRUC dataset for generalizability assessment.
+
 ![HypnoGPT](https://github.com/yuty2009/hypnogpt/blob/main/figures/hypnogpt.png)
 The architecture of the proposed HypnoGPT model comprises a series of $L$ transformer decoder blocks. Overlapping blocks consisting of $K$ stages are extracted from an overnight sleep stage sequence with a stride of 1. Here, the $(i-1)$th input block of $K$ sleep stages are fed into the model for predicting the $i$th target block.
 
@@ -19,7 +22,7 @@ Stage with pretrained sleep staging models
 ```python
 python main_stage_slm.py
 ```
-or ![YASA](https://github.com/raphaelvallat/yasa/tree/master)
+or [YASA](https://github.com/raphaelvallat/yasa/tree/master)
 ```python
 python main_yasa_slm.py
 ```
@@ -36,7 +39,7 @@ If you use the code or results in your research, please consider citing our work
 ```
 @article{yu2024hypnogpt,
   title={HypnoGPT:~A Hypnogram Language Model for Sleep Staging Enhancement and Sleep Disorder Diagnosis},
-  author={Yu, Tianyou and Wang, Fei and Li, Man and Yu, Jingang and Yu, Zhuliang and Li, Yuanqing and Gu, Zhenghui and Xiao, Jun and Wu, Wei},
+  author={Yu, Tianyou and Wang, Fei and Li, Man and Zhang, Jun and Yu, Jingang and Yu, Zhuliang and Li, Yuanqing and Gu, Zhenghui and Xiao, Jun and Wu, Wei},
   journal={},
   volume={},
   pages={},
