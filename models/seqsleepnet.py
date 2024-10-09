@@ -6,8 +6,8 @@ import torch.nn as nn
 
 class LSTM(nn.Module):
     def __init__(
-        self, input_size, hidden_size, num_layers,
-        dropout=0.5, bidirectional=False, return_last=True
+            self, input_size, hidden_size, num_layers,
+            dropout=0.5, bidirectional=False, return_last=True
         ):
         super(LSTM, self).__init__()
         self.hidden_size = hidden_size
@@ -27,6 +27,38 @@ class LSTM(nn.Module):
             c0 = torch.zeros(self.num_layers*self.D, x.size(0), self.hidden_size).to(x.device)
         out, _ = self.lstm(x, (h0, c0))  # RNN output (batch_size, seq_length, hidden_size)
         if self.return_last: out = out[:, -1, :]
+        return out
+
+
+class LSTM_Attention(nn.Module):
+    def __init__(
+            self, input_size, hidden_size, num_layers, attention_dim=64,
+            dropout=0.5, bidirectional=False,
+        ):
+        super(LSTM_Attention, self).__init__()
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.D = 1 
+        if bidirectional is True: self.D = 2
+        self.lstm = nn.LSTM(
+            input_size, hidden_size, num_layers, 
+            batch_first=True, dropout=dropout, bidirectional=bidirectional
+        )
+        self.attn_pooling = nn.Sequential(
+            nn.Linear(self.D*hidden_size, attention_dim),
+            nn.Tanh(),
+            nn.Linear(attention_dim, 1),
+            nn.Softmax(dim=1)
+        )
+    
+    def forward(self, x, h0=None, c0=None):
+        if h0 is None:
+            h0 = torch.zeros(self.num_layers*self.D, x.size(0), self.hidden_size).to(x.device)
+        if c0 is None:
+            c0 = torch.zeros(self.num_layers*self.D, x.size(0), self.hidden_size).to(x.device)
+        out, _ = self.lstm(x, (h0, c0))  # RNN output (batch_size, seq_length, hidden_size)
+        attn_w = self.attn_pooling(out)
+        out = torch.sum(out * attn_w.expand_as(out), dim=1)
         return out
 
 
@@ -82,11 +114,13 @@ class SeqSleepNet(nn.Module):
 if __name__ == '__main__':
 
     from sleepnet import TinySleepNet, DeepSleepNet
+    from wat import WaT
 
     x = torch.randn((20, 10, 1, 3000, 1))
 
     base_encoder = DeepSleepNet(0, 3000)
     # base_encoder = TinySleepNet(0, 3000)
+    # base_encoder = WaT(0, 3000)
 
     model = SeqSleepNet(
         base_encoder, 
@@ -96,4 +130,3 @@ if __name__ == '__main__':
     print(model)
     y = model(x)
     print(y.shape)
-    

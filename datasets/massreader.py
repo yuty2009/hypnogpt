@@ -1,5 +1,6 @@
 
 import os
+import mne
 import glob
 import pyedflib
 import numpy as np
@@ -36,6 +37,97 @@ stage_dict = {
     "UNKNOWN": UNKNOWN,
 }
 
+
+def in_startswith(str_0, list_of_str):
+    str_r = None
+    for str_1 in list_of_str:
+        if str_1.startswith(str_0):
+            str_r = str_1
+            break
+    return str_r
+
+
+def mne20to30(psg_fname):
+    ann_fname = psg_fname.replace("PSG.edf", "Base.edf")
+    psg_f = pyedflib.EdfReader(psg_fname)
+    ann_f = pyedflib.EdfReader(ann_fname)
+    
+    epoch_duration = 30.0 # psg_f.datarecord_duration
+    # Generate labels from onset and duration annotation
+    labels = []
+    ann_onsets, ann_durations, ann_stages = ann_f.readAnnotations()
+    total_duration = ann_onsets[0]
+    for a in range(len(ann_stages)):
+        onset_sec = int(round(ann_onsets[a]))
+        duration_sec = int(round(ann_durations[a]))
+        ann_str = "".join(ann_stages[a])
+
+        # Sanity check
+        assert onset_sec == int(round(total_duration))
+
+        # Get label value
+        label = ann2label[ann_str]
+
+        # Compute # of epoch for this stage
+        epoch_duration_actual = 30
+        overlap_left, overlap_right = 0.0, 0.0
+        if duration_sec < 30.0: # duration is 20 sec for MASS2, MASS4, MASS5
+            epoch_duration_actual = 20
+            overlap_left, overlap_right = 5.0, 5.0
+        duration_epoch = int(round(duration_sec / epoch_duration_actual))
+
+        # Generate sleep stage labels
+        label_epoch = np.ones(duration_epoch, dtype=int) * label
+        labels.append(label_epoch)
+
+        total_duration += duration_sec
+
+    if epoch_duration_actual == 30:
+        raw = mne.io.read_raw_edf(psg_fname, preload=True, verbose=False)
+        return raw
+
+    labels = np.hstack(labels)
+
+    ch_names = psg_f.getSignalLabels()
+    eog_name = in_startswith('EOG', ch_names)
+    emg_name = in_startswith('EMG', ch_names)
+    ch_selected = ['EEG C3', 'EEG C4']
+    ch_names_used = []
+    for ch in ch_selected:
+        ch_eeg = in_startswith(ch, ch_names)
+        if ch_eeg is not None:
+            ch_names_used.append(ch_eeg)
+    ch_names_used += [eog_name, emg_name]
+    ch_types = [ch.split()[0].lower() for ch in ch_names_used]
+
+    first_chan = True
+    signals_epoched = []
+    for c in ch_names_used:
+        ch_index = ch_names.index(c)
+        fs_chan = psg_f.getSampleFrequency(ch_index)
+        if first_chan:
+            first_chan = False
+            sampling_rate = fs_chan
+        signal_chan = psg_f.readSignal(ch_index)
+        if fs_chan != sampling_rate:
+            signal_chan = resample(signal_chan, fs_chan, sampling_rate)
+        signals_epoched_chan = []
+        for i in range(len(labels)): # no more than the number of labels
+            epoch_begin = int(round((ann_onsets[i]-overlap_left)*sampling_rate))
+            epoch_begin = max(0, epoch_begin) # workaround for starting in less than 5 sec
+            epoch_end = epoch_begin + int(round(epoch_duration*sampling_rate))
+            if epoch_end > len(signal_chan): # workaround for ending in less than 5 sec
+                epoch_end = len(signal_chan)
+                epoch_begin = epoch_end - int(round(epoch_duration*sampling_rate))
+            signal_epoch = signal_chan[epoch_begin:epoch_end]
+            signals_epoched_chan.append(signal_epoch)
+        signals_epoched_chan = np.hstack(signals_epoched_chan)
+        signals_epoched.append(signals_epoched_chan)
+    signals = np.vstack(signals_epoched)
+
+    info = mne.create_info(ch_names_used, ch_types=ch_types, sfreq=sampling_rate)
+    raw = mne.io.RawArray(signals, info)
+    return raw
 
 def resample(signal, signal_frequency, target_frequency):
     resampling_ratio = signal_frequency / target_frequency
@@ -84,7 +176,7 @@ def load_eegdata_mass(psg_fname, ann_fname, select_ch=[['EEG C3', 'EEG A2']], ta
         # Compute # of epoch for this stage
         epoch_duration_actual = epoch_duration
         overlap_left, overlap_right = 0.0, 0.0
-        if duration_sec == 20.0: # MASS2 duration is 20 sec
+        if duration_sec == 20.0: # duration is 20 sec for MASS2, MASS4, MASS5
             epoch_duration_actual = 20.0
             overlap_left, overlap_right = 5.0, 5.0
         duration_epoch = int(round(duration_sec / epoch_duration_actual))
@@ -195,16 +287,22 @@ def load_npz_file(npz_file):
         data = f["x"]
         labels = f["y"]
         sampling_rate = f["fs"]
-    return data, labels, sampling_rate
+        ch_label = f["ch_label"]
+        keep_idx = f['keep_idx']
+        edf_path = f['edf_path']
+    return data, labels, sampling_rate, ch_label, keep_idx, edf_path
 
 def load_npz_list_files(npz_files):
     """Load data and labels from list of npz files."""
     data = []
     labels = []
+    ch_labels = []
+    keep_idxs = []
+    edf_paths = []
     fs = None
     for npz_f in npz_files:
         print("Loading {} ...".format(npz_f))
-        tmp_data, tmp_labels, sampling_rate = load_npz_file(npz_f)
+        tmp_data, tmp_labels, sampling_rate, ch_label, keep_idx, edf_path = load_npz_file(npz_f)
         if fs is None:
             fs = sampling_rate
         elif fs != sampling_rate:
@@ -223,15 +321,18 @@ def load_npz_list_files(npz_files):
 
         data.append(tmp_data)
         labels.append(tmp_labels)
+        ch_labels.append(ch_label)
+        keep_idxs.append(keep_idx)
+        edf_paths.append(edf_path)
 
-    return data, labels
+    return data, labels, ch_labels, keep_idxs, edf_paths
 
 def load_subdata_preprocessed(datapath, subject):
     npz_f = os.path.join(datapath, subject+'.npz')
-    data, labels, fs = load_npz_file(npz_f)
+    data, labels, fs, _, _, _ = load_npz_file(npz_f)
     return data, labels
 
-def load_dataset_preprocessed(datapath, subsets=['MASS1', 'MASS2', 'MASS3', 'MASS4', 'MASS5']):
+def load_dataset_preprocessed(datapath, subsets=['MASS1', 'MASS2', 'MASS3', 'MASS4', 'MASS5'], extra_info=False):
     if isinstance(subsets, str):
         subsets = [subsets]
     npzfiles = []
@@ -240,8 +341,11 @@ def load_dataset_preprocessed(datapath, subsets=['MASS1', 'MASS2', 'MASS3', 'MAS
         [npzfiles.append(npz_f) for npz_f in subset_npzfiles]
     npzfiles.sort()
     subjects = [os.path.basename(npz_f)[:-4] for npz_f in npzfiles]
-    data, labels = load_npz_list_files(npzfiles)
-    return data, labels, subjects
+    data, labels, ch_labels, keep_idxs, edf_paths = load_npz_list_files(npzfiles)
+    if extra_info:
+        return data, labels, subjects, ch_labels, keep_idxs, edf_paths
+    else:
+        return data, labels, subjects
 
 def load_npzlist_preprocessed(datapath, subsets=['MASS1', 'MASS2', 'MASS3', 'MASS4', 'MASS5']):
     if isinstance(subsets, str):
@@ -264,7 +368,7 @@ if __name__ == "__main__":
     select_ch = [
         ['EEG C3', 'EEG A2'], # C3-A2
         ['EEG C4', 'EEG A1'], # C4-A1
-        ['EEG C3', 'EEG A2'], # use only C3 otherwise
+        ['EEG C3', 'EEG A2'], # use only C4 otherwise
     ] 
 
     annotations = []

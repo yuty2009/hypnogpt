@@ -1,15 +1,23 @@
 
 import torch
+import random
 import numpy as np
 import scipy.signal as signal
 
 
-class TransformEpoch(object):
-    """ Translate epoch data (t, c) into grayscale images (1, t, c) """
-    def __call__(self, epoch):
-        epoch = epoch.copy()
-        epoch = torch.FloatTensor(epoch)
-        return epoch.unsqueeze(dim=0)
+class ToTensor(object):
+    """ 
+    Turn a (timepoints x channels) or (T, C) epoch into 
+    a (depth x timepoints x channels) or (D, T, C) image for torch.nn.Convnd
+    """
+    def __call__(self, epoch, target=None):
+        if isinstance(epoch, np.ndarray):
+            epoch = torch.FloatTensor(epoch.copy()[None, :, :])
+        elif isinstance(epoch, torch.Tensor):
+            epoch = epoch[None, :, :]
+        if target is not None:
+            return epoch, torch.LongTensor(target)
+        return epoch
     
 
 class TransformSTFT(object):
@@ -161,12 +169,38 @@ class SubEEGDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.targets)
+    
+
+class BigEEGDataset(torch.utils.data.Dataset):
+    def __init__(self, npzfiles, transforms=None):
+        self.npzfiles = npzfiles
+        random.shuffle(self.npzfiles) # use on-demand
+        self.transforms = transforms
+        self.data_gen = self.get_data()
+        self.classes = {'w' : 0, '1' : 1, '2' : 2, '3' : 3, 'R' : 4}
+
+    def get_data(self):
+        for npzfile in self.npzfiles:
+            with np.load(npzfile) as f:
+                self.epochs = f["x"][:, :, np.newaxis] # for conv2d
+                self.targets = f["y"]
+            if self.transforms != None:
+                self.epochs = [self.transforms(epoch) for epoch in self.epochs]
+            self.targets = torch.LongTensor(self.targets)
+            if len(self.targets) > 0:
+                yield (self.epochs.pop(), self.targets.pop())
+
+    def __getitem__(self, idx):
+        return next(self.data_gen)
+
+    def __len__(self):
+        return len(self.npzfiles)*3000
 
 
 class SeqEEGDataset(torch.utils.data.Dataset):
     def __init__(self, epochs, targets, seqlen, transforms=None):
         if transforms == None:
-            self.epochs = torch.Tensor(epochs)
+            self.epochs = torch.FloatTensor(epochs)
         else:
             self.epochs = [transforms(epoch) for epoch in epochs]
             self.epochs = torch.stack(self.epochs)
@@ -193,13 +227,13 @@ class SeqEEGDataset(torch.utils.data.Dataset):
         return len(self.targets) 
     
 
-class SeqSubEEGDataset(torch.utils.data.Dataset):
+class SubSeqEEGDataset(torch.utils.data.Dataset):
     def __init__(self, npzfile, seqlen, transforms=None):
         with np.load(npzfile) as f:
             epochs = f["x"][:, :, np.newaxis] # for conv2d
             targets = f["y"]
         if transforms == None:
-            self.epochs = torch.Tensor(epochs)
+            self.epochs = torch.FloatTensor(epochs)
         else:
             self.epochs = [transforms(epoch) for epoch in epochs]
             self.epochs = torch.stack(self.epochs)

@@ -1,10 +1,10 @@
-# SleepGPT: A Sleep Language Model for Sleep Staging and Sleep Disorder Diagnosis
+# HypnoGPT: A Sleep Language Model for Sleep Staging and Sleep Disorder Diagnosis
 
 ## Overview
-![SleepGPT](https://github.com/yuty2009/sleepgpt/blob/main/figures/sleepgpt.png)
+![HypnoGPT](https://github.com/yuty2009/sleepgpt/blob/main/figures/sleepgpt.png)
 The architecture of the proposed SleepGPT model comprises a series of $L$ transformer decoder blocks. Overlapping blocks consisting of $K$ stages are extracted from an overnight sleep stage sequence with a stride of 1. Here, the $(i-1)$th input block of $K$ sleep stages are fed into the model for predicting the $i$th target block.
 
-![HTN](https://github.com/yuty2009/sleepgpt/blob/main/figures/sleepgpt_htn.png)
+![Hierarchical Transformer Network](https://github.com/yuty2009/sleepgpt/blob/main/figures/sleepgpt_htn.png)
 The hierarchical transformer network (HTN) for stage sequence-based sleep disorder diagnosis. The HTN model comprises a local feature extractor, i.e., the SleepGPT model, a transformer encoder responsible for global feature extraction, and a classification head dedicated to diagnosis. The configuration of the global transformer encoder is depicted to the right. Positioned at the bottom is an example of a whole-night sleep stage sequence, partitioned into non-overlapping segments that are subsequently input into the HTN model.
 
 ## Run the code

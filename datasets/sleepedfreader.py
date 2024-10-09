@@ -183,20 +183,22 @@ def load_npz_file(npz_file):
         data = f["x"]
         labels = f["y"]
         sampling_rate = f["fs"]
+        ch_label = f["ch_label"]
         keep_idx = f['keep_idx']
         edf_path = f['edf_path']
-    return data, labels, sampling_rate, keep_idx, edf_path
+    return data, labels, sampling_rate, ch_label, keep_idx, edf_path
 
 def load_npz_list_files(npz_files):
     """Load data and labels from list of npz files."""
     data = []
     labels = []
+    ch_labels = []
     keep_idxs = []
     edf_paths = []
     fs = None
     for npz_f in npz_files:
         print("Loading {} ...".format(npz_f))
-        tmp_data, tmp_labels, sampling_rate, keep_idx, edf_path = load_npz_file(npz_f)
+        tmp_data, tmp_labels, sampling_rate, ch_label, keep_idx, edf_path = load_npz_file(npz_f)
         if fs is None:
             fs = sampling_rate
         elif fs != sampling_rate:
@@ -211,14 +213,15 @@ def load_npz_list_files(npz_files):
 
         data.append(tmp_data)
         labels.append(tmp_labels)
+        ch_labels.append(ch_label)
         keep_idxs.append(keep_idx)
         edf_paths.append(edf_path)
 
-    return data, labels, keep_idxs, edf_paths
+    return data, labels, ch_labels, keep_idxs, edf_paths
 
 def load_subdata_preprocessed(datapath, subject):
     npz_f = os.path.join(datapath, subject+'.npz')
-    data, labels, fs, _, _ = load_npz_file(npz_f)
+    data, labels, fs, _, _, _ = load_npz_file(npz_f)
     return data, labels
 
 def load_dataset_preprocessed(datapath, subsets=None, n_subjects=None, extra_info=False):
@@ -229,9 +232,9 @@ def load_dataset_preprocessed(datapath, subsets=None, n_subjects=None, extra_inf
     if n_subjects is not None:
         npzfiles = npzfiles[:n_subjects]
     subjects = [os.path.basename(npz_f)[:-4] for npz_f in npzfiles]
-    data, labels, keep_idxs, edf_paths = load_npz_list_files(npzfiles)
+    data, labels, ch_labels, keep_idxs, edf_paths = load_npz_list_files(npzfiles)
     if extra_info:
-        return data, labels, subjects, keep_idxs, edf_paths
+        return data, labels, subjects, ch_labels, keep_idxs, edf_paths
     else:
         return data, labels, subjects
     
@@ -259,7 +262,7 @@ if __name__ == '__main__':
 
     annotations = []
     ann_f = open(datapath+'annotations.txt', 'w')
-    ann_f_s1 = open(datapath+'annotations_s1.txt', 'w')
+    ann_f_s1 = open(datapath+'annotations_s1.txt', 'w') # the first session
     for i in range(len(psg_fnames)):
 
         subject = os.path.basename(psg_fnames[i])[:-8]
