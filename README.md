@@ -1,4 +1,4 @@
-# SleepGPT: Enhancing Sleep Assessment With a Language Model Built on Sleep Stage Sequences
+# SleepGPT: A Language Model Built on Sleep Stage Sequences Enables Efficient Sleep Assessment
 
 ## Overview
 
@@ -14,21 +14,27 @@ The hierarchical transformer network (HTN) for stage sequence-based sleep disord
 ## Run the code
 
 ### Train SleepGPT
+
 ```python
 python main_train_slm.py 
 ```
 
 ### Sleep Staging with SleepGPT
+
 Stage with pretrained sleep staging models
+
 ```python
 python main_stage_slm.py
 ```
+
 or [YASA](https://github.com/raphaelvallat/yasa/tree/master)
+
 ```python
 python main_yasa_slm.py
 ```
 
 ### Sleep Disorder Diagnosis
+
 ```python
 python main_diagnose_cv.py
 ```
@@ -39,12 +45,11 @@ If you use the code or results in your research, please consider citing our work
 
 ```
 @article{yu2024sleepgpt,
-  title={Enhancing Sleep Assessment With a Language Model Built on Sleep Stage Sequences},
-  author={Yu, Tianyou and Gu, Zhenghui and Wang, Fei and Huang, Rui and Li, Man and Yu, Jingang and Yu, Zhuliang and Zhang, Jun and Xu, Yan and Jiang, Haiteng and Liu, Wenjuan and Deng, Guifeng and Gao, Zhengrun and Wu, Yiwen and Liu, Jun and Zhang, Yu and Jones, Matt W and Li, Yuanqing and Xiao, Jun and Wu, Wei},
-  journal={},
-  volume={},
-  pages={},
-  year={}
+  title={A Language Model Built on Sleep Stage Sequences Enables Efficient Sleep Assessment},
+  author={Yu, Tianyou and Gu, Zhenghui and Huang, Rui and Wang, Fei and Li, Man and Yu, Jingang and Yu, Zhuliang and Zhang, Jun and Xu, Yan and Jiang, Haiteng and Liu, Wenjuan and Deng, Guifeng and Gao, Zhengrun and Wu, Yiwen and Liu, Jun and Zhang, Yu and Jones, Matt W and Li, Yuanqing and Xiao, Jun and Wu, Wei},
+  journal={medRxiv},
+  year={2024},
+  doi={10.1101/2024.10.26.24316166},
+  url={https://www.medrxiv.org/content/early/2024/11/13/2024.10.26.24316166},
 }
 ```
-
